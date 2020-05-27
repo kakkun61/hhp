@@ -123,6 +123,8 @@ Test-Suite spec
   Hs-Source-Dirs:       test, lib
   GHC-Options:          -Wall
   Type:                 exitcode-stdio-1.0
+  Build-Tool-Depends:   hspec-discover:hspec-discover
+                      , hhp:hhpc
   Other-Modules:        Dir
                         Spec
                         BrowseSpec
