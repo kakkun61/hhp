@@ -1,4 +1,4 @@
-{-# LANGUAGE TupleSections, FlexibleInstances, Rank2Types #-}
+{-# LANGUAGE CPP, TupleSections, FlexibleInstances, Rank2Types #-}
 
 module Hhp.Info (
     infoExpr
@@ -13,12 +13,18 @@ import Desugar (deSugarExpr)
 import Exception (ghandle, SomeException(..))
 import GHC (Ghc, TypecheckedModule(..), DynFlags, SrcSpan, Type, GenLocated(L))
 import qualified GHC as G
-import HsBinds (HsBindLR(..))
 import HscTypes (ModSummary)
 import Outputable (PprStyle)
 import PprTyThing
 import TcHsSyn (hsPatType)
+
+#if __GLASGOW_HASKELL__ >= 810
+import GHC.Hs.Binds (HsBindLR(..))
+import TyCoRep (AnonArgFlag(VisArg), mkFunTy)
+#else
+import HsBinds (HsBindLR(..))
 import TcType (mkFunTys)
+#endif
 
 import Control.Applicative ((<|>))
 import Control.Monad (filterM)
@@ -165,7 +171,11 @@ instance HasType LBinding where
       where
         in_tys  = inTypes m
         out_typ = outType m
+#if __GLASGOW_HASKELL__ >= 810
+        typ = foldr (mkFunTy VisArg) out_typ in_tys
+#else
         typ = mkFunTys in_tys out_typ
+#endif
     getType _ _ = return Nothing
 
 instance HasType LPattern where

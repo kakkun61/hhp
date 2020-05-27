@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 module Hhp.Browse (
     browseModule
   , browse
@@ -10,7 +12,13 @@ import qualified GHC as G
 import Name (getOccString)
 import Outputable (ppr, Outputable)
 import TyCon (isAlgTyCon)
+
+#if __GLASGOW_HASKELL__ >= 810
+import TyCoRep (AnonArgFlag(VisArg), mkFunTy)
+import Type (dropForAlls, splitFunTy_maybe, isPredTy)
+#else
 import Type (dropForAlls, splitFunTy_maybe, mkFunTy, isPredTy)
+#endif
 
 import Control.Exception (SomeException(..))
 import Data.Char (isAlpha)
@@ -139,7 +147,11 @@ removeForAlls ty = removeForAlls' ty' tty'
 removeForAlls' :: Type -> Maybe (Type, Type) -> Type
 removeForAlls' ty Nothing = ty
 removeForAlls' ty (Just (pre, ftype))
+#if __GLASGOW_HASKELL__ >= 810
+    | isPredTy pre        = mkFunTy VisArg pre (dropForAlls ftype)
+#else
     | isPredTy pre        = mkFunTy pre (dropForAlls ftype)
+#endif
     | otherwise           = ty
 
 showOutputable :: Outputable a => DynFlags -> a -> String

@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, CPP #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, CPP, DataKinds #-}
 
 module Hhp.Gap (
     WarnFlags
@@ -16,11 +16,18 @@ module Hhp.Gap (
   ) where
 
 import DynFlags (DynFlags)
+#if __GLASGOW_HASKELL__ >= 810
+import GHC (LHsBind, LHsExpr, Type, Located)
+#elif __GLASGOW_HASKELL__ >= 808
+import GHC (LHsBind, LHsExpr, LPat, Located, Type)
+#else
 import GHC (LHsBind, LHsExpr, LPat, Type)
-#if __GLASGOW_HASKELL__ >= 808
-import GHC (Located)
 #endif
+#if __GLASGOW_HASKELL__ >= 810
+import GHC.Hs.Expr (MatchGroup)
+#else
 import HsExpr (MatchGroup)
+#endif
 import Outputable (PrintUnqualified, PprStyle, Depth(AllTheWay), mkUserStyle)
 
 ----------------------------------------------------------------
@@ -39,7 +46,12 @@ import GHC (mgModSummaries, ModSummary, ModuleGraph)
 import qualified Data.IntSet as I (IntSet, empty)
 #endif
 
-#if __GLASGOW_HASKELL__ >= 806
+#if __GLASGOW_HASKELL__ >= 810
+import GHC.Hs.Expr (MatchGroupTc(..))
+import GHC.Hs.Extension (GhcPass, GhcTc, Pass(Typechecked))
+import GHC.Hs.Pat (Pat)
+import GHC (mg_ext)
+#elif __GLASGOW_HASKELL__ >= 806
 import HsExpr (MatchGroupTc(..))
 import HsExtension (GhcTc)
 import GHC (mg_ext)
@@ -102,7 +114,16 @@ fixInfo = id
 
 ----------------------------------------------------------------
 
-#if __GLASGOW_HASKELL__ >= 808
+#if __GLASGOW_HASKELL__ >= 810
+type LExpression = LHsExpr GhcTc
+type LBinding    = LHsBind GhcTc
+type LPattern    = Located (Pat (GhcPass 'Typechecked))
+
+inTypes :: MatchGroup GhcTc LExpression -> [Type]
+inTypes = mg_arg_tys . mg_ext
+outType :: MatchGroup GhcTc LExpression -> Type
+outType = mg_res_ty . mg_ext
+#elif __GLASGOW_HASKELL__ >= 808
 type LExpression = LHsExpr GhcTc
 type LBinding    = LHsBind GhcTc
 type LPattern    = Located (LPat GhcTc)
